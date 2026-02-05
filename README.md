@@ -46,8 +46,7 @@ DesertMind learns pixel-level terrain semantics, enabling intelligent decision-m
 
 ## 🏗️ System Overview
 
-
-
+```
 Input Image
 ↓
 Preprocessing
@@ -61,14 +60,13 @@ Segmentation Head
 Prediction Map
 ↓
 Visualization & Analytics
-
+```
 
 ---
 
 ## 📂 Repository Structure
 
-
-
+```
 desertmind/
 │
 ├── app.py # GUI dashboard and inference system
@@ -76,7 +74,7 @@ desertmind/
 ├── train_deeplab.py # Training pipeline
 ├── requirements.txt # Project dependencies
 └── README.md # Documentation
-
+```
 
 ---
 
@@ -99,8 +97,7 @@ The MobileNetV3 backbone provides lightweight feature extraction, while DeepLabV
 
 The dataset directory must follow this structure:
 
-
-
+```
 Offroad_Segmentation_Training_Dataset/
 ├── train/
 │ ├── Color_Images/
@@ -109,7 +106,7 @@ Offroad_Segmentation_Training_Dataset/
 │ ├── Color_Images/
 │ └── Segmentation/
 └── test/ (optional)
-
+```
 
 - Images must be in PNG format.
 - Each mask must have the same filename as its corresponding image.
@@ -123,157 +120,161 @@ Install dependencies using:
 
 ```bash
 pip install -r requirements.txt
-
+```
 
 Main dependencies:
 
-Python ≥ 3.11
+- Python ≥ 3.11
+- PyTorch ≥ 2.0
+- TorchVision ≥ 0.15
+- PyQt6
+- NumPy
+- Pillow
+- Matplotlib
 
-PyTorch ≥ 2.0
+---
 
-TorchVision ≥ 0.15
+## 🚀 Installation
 
-PyQt6
-
-NumPy
-
-Pillow
-
-Matplotlib
-
-🚀 Installation
 1️⃣ Create Virtual Environment
+
+```bash
 py -3.11 -m venv venv
 .\venv\Scripts\activate
+```
 
 2️⃣ Install Packages
+
+```bash
 pip install -r requirements.txt
+```
 
-🏋️ Training the Model
-Step 1: Configure Dataset Path
+---
 
-Open train_deeplab.py and edit:
+## 🏋️ Training the Model
 
+**Step 1: Configure Dataset Path**
+
+Open `train_deeplab.py` and edit:
+
+```python
 ROOT = r"path/to/Offroad_Segmentation_Training_Dataset"
+```
 
-Step 2: Run Training
+**Step 2: Run Training**
+
+```bash
 python train_deeplab.py
+```
 
-Training Output Example
+**Training Output Example**
+
+```
 Using device: cuda
 Train size: 2857 Val size: 317
 
 Epoch 1/10 | train loss ... | val loss ... | val mIoU ... | pixel acc ...
 Saved best model: 0.42
+```
 
-Training Features
+**Training Features**
 
-Automatic mixed precision
-
-Early stopping (patience-based)
-
-Best model checkpointing
-
-Per-class IoU reporting
+- Automatic mixed precision
+- Early stopping (patience-based)
+- Best model checkpointing
+- Per-class IoU reporting
 
 The best model is saved as:
 
-best_deeplab.pth
+`best_deeplab.pth`
 
-🖥️ Running the Analytics Dashboard
+---
+
+## 🖥️ Running the Analytics Dashboard
 
 After training, launch the GUI:
 
+```bash
 python app.py
+```
 
-Dashboard Features
+**Dashboard Features**
 
-Load and analyze images
+- Load and analyze images
+- Overlay segmentation results
+- Terrain composition donut chart
+- Per-class confidence bar chart
+- Inference latency tracking
+- Performance history visualization
 
-Overlay segmentation results
+The dashboard automatically loads `best_deeplab.pth` if available.
 
-Terrain composition donut chart
+---
 
-Per-class confidence bar chart
-
-Inference latency tracking
-
-Performance history visualization
-
-The dashboard automatically loads best_deeplab.pth if available.
-
-📊 Evaluation Metrics
+## 📊 Evaluation Metrics
 
 The system evaluates performance using:
 
-Mean Intersection over Union (mIoU)
-
-Pixel Accuracy
-
-Per-class IoU
-
-Average confidence per class
+- Mean Intersection over Union (mIoU)
+- Pixel Accuracy
+- Per-class IoU
+- Average confidence per class
 
 These metrics provide insight into segmentation quality and model reliability.
 
-⚠️ Known Limitations
+---
 
-DeepLabV3 is computationally intensive
+## ⚠️ Known Limitations
 
-High GPU utilization is expected
-
-Real-time inference may be slow on low-end hardware
-
-Laptop GPUs may experience thermal throttling
+- DeepLabV3 is computationally intensive
+- High GPU utilization is expected
+- Real-time inference may be slow on low-end hardware
+- Laptop GPUs may experience thermal throttling
 
 These are expected behaviors for dense segmentation models.
 
-🔮 Future Improvements
+---
 
-Lightweight backbones (MobileNetV4, EfficientNet)
+## 🔮 Future Improvements
 
-Model export to ONNX / TensorRT
+- Lightweight backbones (MobileNetV4, EfficientNet)
+- Model export to ONNX / TensorRT
+- Video stream segmentation
+- ROS integration
+- Real-time edge deployment
+- Dataset augmentation pipeline
 
-Video stream segmentation
+---
 
-ROS integration
-
-Real-time edge deployment
-
-Dataset augmentation pipeline
-
-🤝 Contributing
+## 🤝 Contributing
 
 Contributions are welcome.
 
 You may contribute by:
 
-Improving model performance
-
-Adding deployment tools
-
-Extending the dashboard
-
-Optimizing memory usage
-
-Improving documentation
+- Improving model performance
+- Adding deployment tools
+- Extending the dashboard
+- Optimizing memory usage
+- Improving documentation
 
 Fork the repository and submit a pull request.
 
-📜 License
+---
+
+## 📜 License
 
 This project is released under the MIT License.
 
-👨‍💻 Authors
+---
+
+## 👨‍💻 Authors
 
 Developed for academic and hackathon purposes.
 
 Contributors:
 
-Manya Chawla
-
-Lakshya Jindal
-
-Kartikay Tayal
-
-Hriday Shah
+- Manya Chawla
+- Lakshya Jindal
+- Kartikay Tayal
+- Hriday Shah

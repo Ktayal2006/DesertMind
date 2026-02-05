@@ -1,61 +1,106 @@
-![Python](https://img.shields.io/badge/Python-3.11-blue?logo=python)
-![PyTorch](https://img.shields.io/badge/PyTorch-2.x-red?logo=pytorch)
-![CUDA](https://img.shields.io/badge/CUDA-Enabled-green?logo=nvidia)
-![GPU](https://img.shields.io/badge/GPU-RTX%203050-76B900?logo=nvidia)
-![Platform](https://img.shields.io/badge/Platform-Windows-0078D6?logo=windows)
-![License](https://img.shields.io/badge/License-MIT-yellow)
-![Task](https://img.shields.io/badge/Task-Semantic%20Segmentation-purple)
-![Backbone](https://img.shields.io/badge/Model-DeepLabV3-orange)
-
 # 🌵 DesertMind  
-### Off-Road Semantic Scene Segmentation with DeepLabV3 (GPU-Optimized)
+### Off-Road Semantic Segmentation & Analytics System
 
-DesertMind is a **GPU-accelerated semantic segmentation pipeline** for **off-road environments**, built using **DeepLabV3 + ResNet-50** and trained on a custom off-road dataset.
+DesertMind is a deep learning–based semantic segmentation system for off-road and desert environments.  
+It combines a GPU-optimized training pipeline with a desktop analytics dashboard for real-time terrain analysis.
 
-This project focuses on:
-- pixel-accurate terrain understanding
-- real-world GPU constraints (RTX 3050, 4GB VRAM)
-- stable, production-style PyTorch training
-- clean, reproducible experimentation
-
-If you’re interested in **autonomous navigation**, **off-road robotics**, or **scene understanding under harsh terrain**, this project is for you.
+The project is designed for applications in autonomous navigation, robotics, and scene understanding in unstructured environments.
 
 ---
 
-## 🚀 Key Features
+## 📌 Features
 
-- ✅ **DeepLabV3 + ResNet-50** semantic segmentation
-- ✅ **CUDA + AMP (mixed precision)** training
-- ✅ **Early stopping** (no wasted epochs)
-- ✅ **GPU-safe configuration** for low-VRAM laptops
-- ✅ **Windows-compatible multiprocessing**
-- ✅ **Clean project structure**
-- ✅ **Ready for real datasets, not toy demos**
-
----
-
-## 🧠 What This Project Solves
-
-Off-road environments are chaotic:
-- no lane markings
-- unstructured terrain
-- dirt, sand, rocks, vegetation
-- lighting and texture variation
-
-DesertMind learns **pixel-level terrain semantics** so higher-level systems (planners, controllers, robots) can make decisions based on **what the ground actually is**.
+- DeepLabV3 semantic segmentation model
+- MobileNetV3 Large backbone
+- Mixed Precision (AMP) training
+- Early stopping for efficient learning
+- Custom dataset loader with label remapping
+- Interactive PyQt6 dashboard
+- Real-time inference visualization
+- Class distribution and confidence analysis
+- Inference latency monitoring
+- Cross-platform support (Windows / macOS / Linux)
 
 ---
 
-## 🗂 Project Structure
-desertmind_project/
-├── dataset.py # Custom Dataset + label remapping
-├── train_deeplab.py # GPU-optimized DeepLabV3 training script
-├── best_deeplab.pth # Best saved model (after training)
-├── README.md # This file
-└── venv/ # Python virtual environment
+## 🧠 Motivation
+
+Off-road environments lack structured visual cues such as:
+
+- Lane markings
+- Clear boundaries
+- Uniform textures
+
+Instead, they contain:
+
+- Sand, rocks, dirt, vegetation
+- Irregular lighting
+- Texture variations
+- Unpredictable terrain
+
+Traditional vision systems struggle in such conditions.
+
+DesertMind learns pixel-level terrain semantics, enabling intelligent decision-making for autonomous and robotic systems operating in harsh environments.
+
+---
+
+## 🏗️ System Overview
 
 
-Dataset directory (can live anywhere):
+
+Input Image
+↓
+Preprocessing
+↓
+MobileNetV3 Feature Encoder
+↓
+DeepLabV3 ASPP Module
+↓
+Segmentation Head
+↓
+Prediction Map
+↓
+Visualization & Analytics
+
+
+---
+
+## 📂 Repository Structure
+
+
+
+desertmind/
+│
+├── app.py # GUI dashboard and inference system
+├── dataset.py # Custom dataset loader and label mapping
+├── train_deeplab.py # Training pipeline
+├── requirements.txt # Project dependencies
+└── README.md # Documentation
+
+
+---
+
+## 🧪 Model Architecture
+
+| Component | Description |
+|-----------|-------------|
+| Architecture | DeepLabV3 |
+| Backbone | MobileNetV3 Large |
+| Loss Function | Cross Entropy |
+| Optimizer | AdamW |
+| Metrics | Mean IoU, Pixel Accuracy |
+| Classes | 10 |
+
+The MobileNetV3 backbone provides lightweight feature extraction, while DeepLabV3 enables multi-scale context learning using atrous convolutions.
+
+---
+
+## 📁 Dataset Format
+
+The dataset directory must follow this structure:
+
+
+
 Offroad_Segmentation_Training_Dataset/
 ├── train/
 │ ├── Color_Images/
@@ -66,104 +111,169 @@ Offroad_Segmentation_Training_Dataset/
 └── test/ (optional)
 
 
----
-
-## 🧪 Model Details
-
-- **Architecture:** DeepLabV3
-- **Backbone:** ResNet-50 (ImageNet pretrained)
-- **Loss:** Cross-Entropy
-- **Metric:** Mean Intersection-over-Union (mIoU)
-- **Classes:** 10 (custom off-road label set)
+- Images must be in PNG format.
+- Each mask must have the same filename as its corresponding image.
+- Raw labels are remapped internally to 10 training classes.
 
 ---
 
-## ⚙️ Training Setup (Real-World)
+## ⚙️ Requirements
 
-This project was trained on:
+Install dependencies using:
 
-- **GPU:** NVIDIA RTX 3050 (Laptop, 4GB VRAM)
-- **OS:** Windows
-- **Python:** 3.11
-- **Framework:** PyTorch + TorchVision
-- **CUDA:** Enabled
-- **Precision:** Mixed Precision (AMP)
-
-⚠️ The code is explicitly optimized for **low-VRAM GPUs**.
-
----
-
-## 🔥 Performance Optimizations
-
-To make DeepLabV3 usable on limited hardware, DesertMind includes:
-
-- Mixed precision (`torch.amp`)
-- cuDNN autotuning
-- Reduced batch size
-- Persistent DataLoader workers
-- Early stopping (patience-based)
-- GPU-safe memory usage
-
-This is **not a notebook toy** — it’s a real training pipeline.
-
----
+```bash
+pip install -r requirements.txt
 
 
-💾 Output
+Main dependencies:
 
-best_deeplab.pth → best model checkpoint (by validation mIoU)
-Console logs → training + validation metrics per epoch
+Python ≥ 3.11
 
-🧠 Why Early Stopping?
+PyTorch ≥ 2.0
 
-Instead of guessing epoch counts, DesertMind uses patience-based early stopping:
-Trains up to a max epoch count
-Stops automatically when learning plateaus
-Saves GPU time and heat
-Prevents overfitting
+TorchVision ≥ 0.15
 
-⚠️ Known Constraints
+PyQt6
 
-DeepLabV3 is computationally heavy
-Full-resolution segmentation is slow on laptop GPUs
-High GPU utilization is expected
-Sustained temps above ~85°C should be avoided
-This is expected behavior, not a bug.
+NumPy
 
-🚀 Future Improvements
+Pillow
 
-Lighter backbone (MobileNet / HRNet)
-Input resolution scaling
-Inference & visualization scripts
-Export to ONNX / TensorRT
-Integration with robotics stacks
+Matplotlib
 
-🤝 Contributing
-Pull requests, experiments, and improvements are welcome.
-If you’re experimenting with:
-off-road robotics
-terrain classification
-GPU-efficient segmentation
-feel free to fork and build on it.
-
----
-
-## 🏁 Installation
-
-```powershell
+🚀 Installation
+1️⃣ Create Virtual Environment
 py -3.11 -m venv venv
 .\venv\Scripts\activate
-pip install torch torchvision numpy pillow matplotlib
-ROOT = r"/path/to/Offroad_Segmentation_Training_Dataset"
 
-Run training:
+2️⃣ Install Packages
+pip install -r requirements.txt
+
+🏋️ Training the Model
+Step 1: Configure Dataset Path
+
+Open train_deeplab.py and edit:
+
+ROOT = r"path/to/Offroad_Segmentation_Training_Dataset"
+
+Step 2: Run Training
 python train_deeplab.py
 
-Expected output:
-
+Training Output Example
 Using device: cuda
 Train size: 2857 Val size: 317
-Epoch 1/20 | train loss ... | val loss ... | val mIoU ...
 
+Epoch 1/10 | train loss ... | val loss ... | val mIoU ... | pixel acc ...
+Saved best model: 0.42
 
----
+Training Features
+
+Automatic mixed precision
+
+Early stopping (patience-based)
+
+Best model checkpointing
+
+Per-class IoU reporting
+
+The best model is saved as:
+
+best_deeplab.pth
+
+🖥️ Running the Analytics Dashboard
+
+After training, launch the GUI:
+
+python app.py
+
+Dashboard Features
+
+Load and analyze images
+
+Overlay segmentation results
+
+Terrain composition donut chart
+
+Per-class confidence bar chart
+
+Inference latency tracking
+
+Performance history visualization
+
+The dashboard automatically loads best_deeplab.pth if available.
+
+📊 Evaluation Metrics
+
+The system evaluates performance using:
+
+Mean Intersection over Union (mIoU)
+
+Pixel Accuracy
+
+Per-class IoU
+
+Average confidence per class
+
+These metrics provide insight into segmentation quality and model reliability.
+
+⚠️ Known Limitations
+
+DeepLabV3 is computationally intensive
+
+High GPU utilization is expected
+
+Real-time inference may be slow on low-end hardware
+
+Laptop GPUs may experience thermal throttling
+
+These are expected behaviors for dense segmentation models.
+
+🔮 Future Improvements
+
+Lightweight backbones (MobileNetV4, EfficientNet)
+
+Model export to ONNX / TensorRT
+
+Video stream segmentation
+
+ROS integration
+
+Real-time edge deployment
+
+Dataset augmentation pipeline
+
+🤝 Contributing
+
+Contributions are welcome.
+
+You may contribute by:
+
+Improving model performance
+
+Adding deployment tools
+
+Extending the dashboard
+
+Optimizing memory usage
+
+Improving documentation
+
+Fork the repository and submit a pull request.
+
+📜 License
+
+This project is released under the MIT License.
+
+👨‍💻 Authors
+
+Developed for academic and hackathon purposes.
+
+Contributors:
+
+Manya Chawla
+
+Lakshya Jindal
+
+Kartikay Tayal
+
+Hriday Shah

@@ -50,7 +50,7 @@ def main():
     ROOT = r"C:\Users\DELL\Downloads\Offroad_Segmentation_Training_Dataset\Offroad_Segmentation_Training_Dataset"
     NUM_CLASSES = 10
     BATCH_SIZE = 2
-    LR = 3e-5
+    LR = 1e-5
     EPOCHS = 6
     PATIENCE = 2
 
@@ -92,10 +92,10 @@ def main():
     model.load_state_dict(torch.load(SAVE_PATH))
     print("Loaded best checkpoint for fine-tuning")
 
-    # ===== FREEZE BACKBONE =====
+    # ===== UNFREEZE BACKBONE =====
     for param in model.backbone.parameters():
-        param.requires_grad = False
-    print("Backbone frozen")
+        param.requires_grad = True
+    print("Backbone unfrozen(gentle fine-tuning)")
 
     criterion = nn.CrossEntropyLoss()
     optimizer = torch.optim.AdamW(

@@ -409,6 +409,7 @@ Top Classes:
   • Sky: 28.7% (conf: 0.97)
   • Rocks: 15.2% (conf: 0.78)
 ```
+<img width="1510" height="796" alt="image" src="https://github.com/user-attachments/assets/7524343e-5c4c-405c-bd62-87d06b830c4c" />
 
 ---
 

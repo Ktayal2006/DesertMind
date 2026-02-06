@@ -123,7 +123,7 @@ def main():
         model.eval()
         val_losses = []
         val_ious = []
-        per_class_ious = []   # ✅ RESET EACH EPOCH
+        per_class_ious = []   #RESET EACH EPOCH
         pixel_accs = []
 
         with torch.no_grad():
@@ -184,3 +184,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+

@@ -128,6 +128,9 @@ desertmind/
 │
 ├── 🖥️  app.py                                      # PyQt6 analytics dashboard
 │
+├── web_app.py                                      # website for any user to test
+|
+|
 ├── 📊 Dataset Loaders
 │   ├── dataset_phase1.py                          # Baseline dataset (no augmentation)
 │   ├── dataset_finetune_augmentation_phase2.py    # Augmented dataset (Phase 2)
@@ -151,6 +154,7 @@ desertmind/
 | `train_*.py` | Training scripts implementing different experimental phases |
 | `OUTPUTS.txt` | Comprehensive logs, results, and engineering insights |
 | `requirements.txt` | All Python package dependencies |
+| `web_app.py` | open website for inference and real-time analytics |
 
 ---
 

@@ -1,13 +1,13 @@
 import sys
 import os
-import time  # <--- Added standard time module
+import time
 import torch
 import torch.nn as nn
 import numpy as np
 from PIL import Image
 from PyQt6.QtWidgets import (
     QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
-    QLabel, QPushButton, QFileDialog, QFrame, QGridLayout, QToolBar
+    QLabel, QPushButton, QFileDialog, QFrame, QGridLayout, QToolBar, QScrollArea
 )
 from PyQt6.QtGui import QPixmap, QImage, QFont, QIcon, QColor
 from PyQt6.QtCore import Qt, QSize
@@ -16,7 +16,20 @@ from torchvision import transforms
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.figure import Figure
 
-# --- COLOR PALETTE & STYLE SHEET ---
+# --- TERRAIN CONFIGURATION ---
+CLASS_MAP = {
+    0: {"name": "Sky", "color": (135, 206, 235)},
+    1: {"name": "Sand", "color": (244, 164, 96)},
+    2: {"name": "Dry Grass", "color": (189, 183, 107)},
+    3: {"name": "Trees", "color": (34, 139, 34)},
+    4: {"name": "Bushes", "color": (85, 107, 47)},
+    5: {"name": "Rocks", "color": (128, 128, 128)},
+    6: {"name": "Logs", "color": (160, 82, 45)},
+    7: {"name": "Ground Clutter", "color": (105, 105, 105)},
+    8: {"name": "Lush Bushes", "color": (0, 100, 0)},
+    9: {"name": "Background", "color": (0, 0, 0)},
+}
+
 COLORS = {
     "bg_dark": "#1a1f29",
     "bg_card": "#293241",
@@ -26,35 +39,23 @@ COLORS = {
     "border": "#3d5a80"
 }
 
-# Fixed font family to work on Mac and Windows
 QSS = f"""
     QMainWindow {{ background-color: {COLORS['bg_dark']}; }}
     QToolBar {{ background-color: {COLORS['bg_card']}; border-bottom: 1px solid {COLORS['border']}; }}
-    QToolButton {{ color: {COLORS['text_light']}; }}
     QFrame#DashboardCard {{
         background-color: {COLORS['bg_card']};
         border: 1px solid {COLORS['border']};
         border-radius: 10px;
         padding: 10px;
     }}
-    QLabel {{ color: {COLORS['text_light']}; font-family: 'Segoe UI', 'Helvetica Neue', 'Arial', sans-serif; }}
-    QLabel#CardTitle {{
-        font-weight: bold; font-size: 14px; margin-bottom: 10px;
-        color: {COLORS['accent_blue']};
-    }}
+    QLabel {{ color: {COLORS['text_light']}; font-family: 'Segoe UI', 'Helvetica Neue', sans-serif; }}
+    QLabel#CardTitle {{ font-weight: bold; font-size: 13px; color: {COLORS['accent_blue']}; text-transform: uppercase; }}
     QPushButton {{
         background-color: {COLORS['accent_orange']};
         color: {COLORS['bg_dark']};
-        border: none; border-radius: 5px;
-        padding: 10px 20px; font-weight: bold; font-size: 14px;
+        border-radius: 5px; padding: 12px; font-weight: bold;
     }}
     QPushButton:hover {{ background-color: {COLORS['accent_blue']}; }}
-    QPushButton:disabled {{ background-color: {COLORS['border']}; color: #666; }}
-    QLabel#ImageLabel {{
-        border: 1px dashed {COLORS['border']};
-        border-radius: 5px;
-        background-color: #202633;
-    }}
 """
 
 class MplCanvas(FigureCanvas):
@@ -65,53 +66,49 @@ class MplCanvas(FigureCanvas):
         self.axes.set_facecolor(COLORS['bg_card'])
         for spine in self.axes.spines.values():
             spine.set_color(COLORS['border'])
-        self.axes.tick_params(colors=COLORS['text_light'])
-        self.axes.xaxis.label.set_color(COLORS['text_light'])
-        self.axes.yaxis.label.set_color(COLORS['text_light'])
+        self.axes.tick_params(colors=COLORS['text_light'], labelsize=8)
         super(MplCanvas, self).__init__(self.fig)
 
 class DashboardWindow(QMainWindow):
     def __init__(self):
         super().__init__()
-        self.setWindowTitle("DESERTMIND ANALYTICS | Off-Road Segmentation")
-        self.setMinimumSize(1400, 900)
+        self.setWindowTitle("DESERTMIND ANALYTICS | Mission Control")
+        self.setMinimumSize(1400, 950)
         self.setStyleSheet(QSS)
         
-        # Smart Device Selection (Supports Mac MPS, CUDA, and CPU)
-        if torch.cuda.is_available():
-            self.device = "cuda"
-        elif torch.backends.mps.is_available():
-            self.device = "mps"  # Mac M1/M2/M3 support
-        else:
-            self.device = "cpu"
-        
-        print(f"Running on device: {self.device}")
+        # Device Detection
+        if torch.cuda.is_available(): self.device = "cuda"
+        elif torch.backends.mps.is_available(): self.device = "mps"
+        else: self.device = "cpu"
 
+        # Prepare class lists
         self.num_classes = 10
-        self.class_names = [f"Class {i}" for i in range(self.num_classes)]
-        self.color_palette = np.array([
-            [61, 90, 128], [152, 193, 217], [224, 251, 252], [238, 108, 77], [41, 50, 65],
-            [100, 140, 180], [200, 80, 60], [120, 200, 120], [180, 120, 180], [250, 250, 250]
-        ], dtype=np.uint8)
+        self.class_names = [CLASS_MAP[i]["name"] for i in range(10)]
+        self.color_palette = np.array([CLASS_MAP[i]["color"] for i in range(10)], dtype=np.uint8)
         
         self.inference_times = []  
         self.init_model()
         self.setup_ui()
-        
 
     def init_model(self):
-        self.model = deeplabv3_mobilenet_v3_large(weights="DEFAULT", aux_loss=True)
+        # 1. Initialize with aux_loss=True to match your saved file
+        self.model = deeplabv3_mobilenet_v3_large(weights=None, aux_loss=True)
+        
+        # 2. Update both classifiers to match your 10 classes
         self.model.classifier[4] = nn.Conv2d(256, self.num_classes, kernel_size=1)
+        self.model.aux_classifier[4] = nn.Conv2d(10, self.num_classes, kernel_size=1)
+        
         model_path = "best_deeplab.pth"
         if os.path.exists(model_path):
             try:
-                # Map location handles loading CUDA weights on Mac/CPU
+                # 3. Load the weights
                 self.model.load_state_dict(torch.load(model_path, map_location=self.device))
-                print("Model loaded successfully.")
+                print("Model loaded successfully with Auxiliary weights.")
             except Exception as e:
                 print(f"Error loading model: {e}. Using random weights.")
         else:
             print(f"Model file '{model_path}' not found. Using random weights.")
+            
         self.model.to(self.device).eval()
 
         self.preprocess = transforms.Compose([
@@ -121,193 +118,147 @@ class DashboardWindow(QMainWindow):
         ])
 
     def setup_ui(self):
-        self.setup_toolbar()
-        self.setup_central_widget()
-
-    def setup_toolbar(self):
-        toolbar = QToolBar("Main Toolbar")
-        toolbar.setIconSize(QSize(24, 24))
+        # Toolbar
+        toolbar = QToolBar()
         self.addToolBar(toolbar)
-        
-        title_label = QLabel("  DESERTMIND ANALYTICS  ")
-        title_label.setStyleSheet(f"font-weight: bold; font-size: 16px; color: {COLORS['accent_orange']};")
-        toolbar.addWidget(title_label)
+        title = QLabel("  🌵 DESERTMIND ANALYTICS ")
+        title.setStyleSheet(f"font-weight: bold; color: {COLORS['accent_orange']}; font-size: 18px;")
+        toolbar.addWidget(title)
 
-    def create_card(self, title):
-        card = QFrame()
-        card.setObjectName("DashboardCard")
-        layout = QVBoxLayout(card)
-        title_lbl = QLabel(title)
-        title_lbl.setObjectName("CardTitle")
-        layout.addWidget(title_lbl)
-        return card, layout
-
-    def setup_central_widget(self):
         central_widget = QWidget()
         self.setCentralWidget(central_widget)
         main_layout = QVBoxLayout(central_widget)
         
-        grid_layout = QGridLayout()
-        grid_layout.setSpacing(20)
-        main_layout.addLayout(grid_layout)
+        grid = QGridLayout()
+        grid.setSpacing(15)
 
-        # --- 1. Input & Output Comparison Card ---
-        io_card, io_layout = self.create_card("INPUT SCENE & SEGMENTATION RESULT")
-        
+        # 1. Main Viewport
+        io_card, io_layout = self.create_card("TERRAIN SEGMENTATION VIEW")
         imgs_layout = QHBoxLayout()
-        self.input_lbl = QLabel("No Image Loaded")
-        self.input_lbl.setObjectName("ImageLabel")
-        self.input_lbl.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self.input_lbl.setMinimumSize(400, 300)
-        
-        self.output_lbl = QLabel("Analysis Not Run")
-        self.output_lbl.setObjectName("ImageLabel")
-        self.output_lbl.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self.output_lbl.setMinimumSize(400, 300)
-        
+        self.input_lbl = self.create_img_placeholder("SOURCE")
+        self.output_lbl = self.create_img_placeholder("MASKED")
         imgs_layout.addWidget(self.input_lbl)
         imgs_layout.addWidget(self.output_lbl)
         io_layout.addLayout(imgs_layout)
-
-        self.analyze_btn = QPushButton("LOAD & ANALYZE IMAGE")
+        
+        self.analyze_btn = QPushButton("IMPORT & ANALYZE OFF-ROAD SCENE")
         self.analyze_btn.clicked.connect(self.analyze_image)
         io_layout.addWidget(self.analyze_btn)
-        
-        grid_layout.addWidget(io_card, 0, 0, 1, 2)
+        grid.addWidget(io_card, 0, 0, 1, 2)
 
-        # --- 2. Class Distribution Donut Chart ---
-        dist_card, dist_layout = self.create_card("TERRAIN COMPOSITION (DONUT)")
-        self.dist_canvas = MplCanvas(self, width=5, height=4, dpi=100)
+        # 2. Donut Chart
+        dist_card, dist_layout = self.create_card("TERRAIN COMPOSITION")
+        self.dist_canvas = MplCanvas(self)
         dist_layout.addWidget(self.dist_canvas)
-        grid_layout.addWidget(dist_card, 0, 2)
+        grid.addWidget(dist_card, 0, 2)
 
-        # --- 3. Model Confidence Bar Chart ---
-        conf_card, conf_layout = self.create_card("AVERAGE CLASS CONFIDENCE")
-        self.conf_canvas = MplCanvas(self, width=5, height=4, dpi=100)
+        # 3. Bar Chart
+        conf_card, conf_layout = self.create_card("MODEL CONFIDENCE")
+        self.conf_canvas = MplCanvas(self)
         conf_layout.addWidget(self.conf_canvas)
-        grid_layout.addWidget(conf_card, 1, 0)
+        grid.addWidget(conf_card, 1, 0)
 
-        # --- 4. Inference Time Line Chart ---
-        time_card, time_layout = self.create_card("INFERENCE PERFORMANCE HISTORY")
-        self.time_canvas = MplCanvas(self, width=5, height=4, dpi=100)
+        # 4. Latency Chart
+        time_card, time_layout = self.create_card("PERFORMANCE TREND")
+        self.time_canvas = MplCanvas(self)
         time_layout.addWidget(self.time_canvas)
-        grid_layout.addWidget(time_card, 1, 1, 1, 2)
+        grid.addWidget(time_card, 1, 1)
 
+        # 5. LEGEND CARD (Your requested mapping)
+        legend_card, legend_layout = self.create_card("TERRAIN COLOR KEY")
+        legend_grid = QGridLayout()
+        for i in range(10):
+            color = CLASS_MAP[i]["color"]
+            label = CLASS_MAP[i]["name"]
+            
+            # Color swatch
+            swatch = QLabel()
+            swatch.setFixedSize(16, 16)
+            swatch.setStyleSheet(f"background-color: rgb{color}; border-radius: 3px;")
+            
+            name = QLabel(label)
+            name.setStyleSheet("font-size: 11px; font-weight: bold;")
+            
+            legend_grid.addWidget(swatch, i % 5, (i // 5) * 2)
+            legend_grid.addWidget(name, i % 5, (i // 5) * 2 + 1)
+        
+        legend_layout.addLayout(legend_grid)
+        grid.addWidget(legend_card, 1, 2)
+
+        main_layout.addLayout(grid)
         self.update_charts(None, None)
 
+    def create_card(self, title):
+        card = QFrame(); card.setObjectName("DashboardCard")
+        layout = QVBoxLayout(card)
+        t = QLabel(title); t.setObjectName("CardTitle")
+        layout.addWidget(t)
+        return card, layout
+
+    def create_img_placeholder(self, text):
+        lbl = QLabel(text)
+        lbl.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        lbl.setMinimumSize(400, 300)
+        lbl.setStyleSheet(f"border: 1px dashed {COLORS['border']}; background: #1a1f29;")
+        return lbl
+
     def analyze_image(self):
-        fname, _ = QFileDialog.getOpenFileName(self, 'Open file', '', "Image files (*.jpg *.png *.jpeg)")
-        if not fname:
-            return
+        fname, _ = QFileDialog.getOpenFileName(self, 'Open Image')
+        if not fname: return
 
-        # 1. Load and Preprocess Image
-        try:
-            orig_img = Image.open(fname).convert("RGB")
-            input_tensor = self.preprocess(orig_img).unsqueeze(0).to(self.device)
-        except Exception as e:
-            print(f"Error loading image: {e}")
-            return
+        orig_img = Image.open(fname).convert("RGB")
+        input_tensor = self.preprocess(orig_img).unsqueeze(0).to(self.device)
 
-        # Display Input Image
-        pixmap = QPixmap(fname).scaled(self.input_lbl.size(), Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation)
-        self.input_lbl.setPixmap(pixmap)
-        self.analyze_btn.setEnabled(False)
-        self.analyze_btn.setText("PROCESSING...")
+        # Update Input UI
+        self.input_lbl.setPixmap(QPixmap(fname).scaled(400, 300, Qt.AspectRatioMode.KeepAspectRatio))
         QApplication.processEvents()
 
-        # 2. Run Inference (Cross-Platform Timing)
-        start_time = time.time()  # <--- Works on Mac & Windows
-        
+        # Inference
+        start = time.time()
         with torch.no_grad():
             output = self.model(input_tensor)["out"]
-            
-            # Sync if using GPU/MPS
-            if self.device == "cuda":
-                torch.cuda.synchronize()
-            elif self.device == "mps":
-                torch.mps.synchronize()
-                
-        end_time = time.time()
-        
-        inference_time_ms = (end_time - start_time) * 1000
-        self.inference_times.append(inference_time_ms)
-        if len(self.inference_times) > 15:
-            self.inference_times.pop(0)
+            if self.device == "mps": torch.mps.synchronize()
+        end = time.time()
 
-        # 3. Process Output
-        probabilities = torch.nn.functional.softmax(output, dim=1)
-        prediction = torch.argmax(output, dim=1).squeeze(0).cpu().numpy()
+        self.inference_times.append((end-start)*1000)
         
-        mask_colored = self.color_palette[prediction]
+        probs = torch.nn.functional.softmax(output, dim=1)
+        pred = torch.argmax(output, dim=1).squeeze(0).cpu().numpy()
+        
+        # Color processing
+        mask_colored = self.color_palette[pred]
         mask_img = Image.fromarray(mask_colored).resize(orig_img.size, Image.NEAREST)
-        blended_img = Image.blend(orig_img, mask_img, alpha=0.6)
+        blended = Image.blend(orig_img, mask_img, alpha=0.55)
 
-        blended_np = np.array(blended_img)
-        h, w, c = blended_np.shape
-        qimg = QImage(blended_np.data, w, h, c * w, QImage.Format.Format_RGB888)
-        pixmap_out = QPixmap.fromImage(qimg).scaled(self.output_lbl.size(), Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation)
-        self.output_lbl.setPixmap(pixmap_out)
+        # Show Result
+        res = np.array(blended)
+        qimg = QImage(res.data, res.shape[1], res.shape[0], res.shape[1]*3, QImage.Format.Format_RGB888)
+        self.output_lbl.setPixmap(QPixmap.fromImage(qimg).scaled(400, 300, Qt.AspectRatioMode.KeepAspectRatio))
 
-        # 4. Update Charts
-        self.update_charts(prediction, probabilities)
+        self.update_charts(pred, probs)
 
-        self.analyze_btn.setEnabled(True)
-        self.analyze_btn.setText("LOAD & ANALYZE IMAGE")
-
-    def update_charts(self, prediction, probabilities):
-        # --- Class Distribution Donut Chart ---
+    def update_charts(self, pred, probs):
+        # Donut Chart
         self.dist_canvas.axes.clear()
-        if prediction is not None:
-            unique, counts = np.unique(prediction, return_counts=True)
-            total_pixels = prediction.size
-            percentages = counts / total_pixels * 100
-            labels = [self.class_names[i] for i in unique]
-            colors = [tuple(c/255 for c in self.color_palette[i]) for i in unique]
-            
-            wedges, texts, autotexts = self.dist_canvas.axes.pie(
-                percentages, labels=labels, autopct='%1.1f%%', startangle=90, 
-                colors=colors, wedgeprops=dict(width=0.4, edgecolor=COLORS['bg_card']),
-                textprops={'color': COLORS['text_light']}
-            )
-            self.dist_canvas.axes.set_title("Class Distribution", color=COLORS['text_light'])
-        else:
-             self.dist_canvas.axes.text(0.5, 0.5, "No Data", ha='center', va='center', color=COLORS['text_light'])
+        if pred is not None:
+            ids, counts = np.unique(pred, return_counts=True)
+            labels = [CLASS_MAP[i]["name"] for i in ids]
+            clrs = [tuple(c/255 for c in CLASS_MAP[i]["color"]) for i in ids]
+            self.dist_canvas.axes.pie(counts, labels=labels, colors=clrs, wedgeprops=dict(width=0.4), textprops={'color': 'white', 'fontsize': 7})
         self.dist_canvas.draw()
 
-        # --- Model Confidence Bar Chart ---
+        # Bar Chart
         self.conf_canvas.axes.clear()
-        if probabilities is not None:
-            confidences = []
-            for i in range(self.num_classes):
-                class_prob = probabilities[0, i, :, :].cpu().numpy()
-                mask = prediction == i
-                if mask.any():
-                    avg_conf = np.mean(class_prob[mask])
-                else:
-                    avg_conf = 0.0
-                confidences.append(avg_conf)
-            
-            x = np.arange(self.num_classes)
-            self.conf_canvas.axes.bar(x, confidences, color=COLORS['accent_blue'], alpha=0.7)
-            self.conf_canvas.axes.set_xticks(x)
-            self.conf_canvas.axes.set_xticklabels(self.class_names, rotation=45, ha='right')
-            self.conf_canvas.axes.set_ylim(0, 1.0)
-            self.conf_canvas.axes.set_title("Mean Confidence per Class", color=COLORS['text_light'])
-        else:
-             self.conf_canvas.axes.text(0.5, 0.5, "No Data", ha='center', va='center', color=COLORS['text_light'])
+        if probs is not None:
+            confs = [np.mean(probs[0,i].cpu().numpy()[pred==i]) if (pred==i).any() else 0 for i in range(10)]
+            self.conf_canvas.axes.bar(self.class_names, confs, color=COLORS['accent_blue'])
+            self.conf_canvas.axes.tick_params(axis='x', rotation=45)
         self.conf_canvas.draw()
 
-        # --- Inference Time Line Chart ---
+        # Time Chart
         self.time_canvas.axes.clear()
         if self.inference_times:
-            x = np.arange(1, len(self.inference_times) + 1)
-            self.time_canvas.axes.plot(x, self.inference_times, marker='o', color=COLORS['accent_orange'], linewidth=2)
-            self.time_canvas.axes.set_xlabel("Inference ID")
-            self.time_canvas.axes.set_ylabel("Time (ms)")
-            self.time_canvas.axes.set_title("Inference Latency Trend", color=COLORS['text_light'])
-            self.time_canvas.axes.grid(True, which='both', color=COLORS['border'], linestyle='--')
-        else:
-             self.time_canvas.axes.text(0.5, 0.5, "No Data", ha='center', va='center', color=COLORS['text_light'])
+            self.time_canvas.axes.plot(self.inference_times, color=COLORS['accent_orange'], marker='o')
         self.time_canvas.draw()
 
 if __name__ == "__main__":

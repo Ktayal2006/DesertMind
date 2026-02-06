@@ -100,7 +100,7 @@ class DashboardWindow(QMainWindow):
         
 
     def init_model(self):
-        self.model = deeplabv3_mobilenet_v3_large(weights=None)
+        self.model = deeplabv3_mobilenet_v3_large(weights="DEFAULT", aux_loss=True)
         self.model.classifier[4] = nn.Conv2d(256, self.num_classes, kernel_size=1)
         model_path = "best_deeplab.pth"
         if os.path.exists(model_path):

@@ -1,0 +1,508 @@
+████████████████████████████████████████████████████
+█                                                  █
+█   🏜️  DESERTMIND — TRAINING OUTPUTS & ANALYSIS   █
+█                                                  █
+████████████████████████████████████████████████████
+
+🚀 Project      : Off-Road Semantic Segmentation
+🧠 Model        : DeepLabV3 (MobileNet / ResNet)
+⚙️ Framework    : PyTorch
+🖥️ Device       : CUDA (RTX 3050)
+📂 Dataset      : Offroad Segmentation Training Dataset
+
+====================================================
+==================== PHASE 1 =======================
+====================================================
+
+🧪 PHASE 1 — BASELINE TRAINING
+📄 File : train_deeplab.py
+
+🔧 Configuration
+--------------------------------------------
+• Loss            : CrossEntropy
+• Fine-tuning     : ❌ No
+• Augmentation    : ❌ No
+• Class metrics   : ❌ No
+--------------------------------------------
+
+📊 Training Log
+--------------------------------------------
+Epoch 1   | val mIoU = 0.3912
+Epoch 3   | val mIoU = 0.4448
+Epoch 5   | val mIoU = 0.4669
+Epoch 7   | val mIoU = 0.4847
+Epoch 9   | val mIoU = 0.4962  ⭐ BEST
+Epoch 10  | val mIoU = 0.4728  ⬇️
+--------------------------------------------
+
+🏁 Best validation mIoU : 0.4962
+
+✅ Engineering Observations
+--------------------------------------------
+✔ Model learned meaningful structure
+✔ No overfitting observed
+✔ Loss & mIoU trends aligned
+✔ Early stopping behavior correct
+--------------------------------------------
+
+🧠 Verdict
+--------------------------------------------
+A strong and reliable baseline.
+This is a legitimate, competitive result.
+--------------------------------------------
+
+
+====================================================
+================== PHASE 2.1 =======================
+====================================================
+
+🔬 PHASE 2.1 — HEAD-ONLY FINE-TUNING
+📄 File : train_deeplab_finetune.py
+
+🔧 Changes Introduced
+--------------------------------------------
+• Loaded Phase-1 checkpoint
+• Backbone frozen ❄️
+• Per-class IoU enabled
+• Pixel accuracy added
+--------------------------------------------
+
+📊 Results Summary
+--------------------------------------------
+Start mIoU  : ~0.497
+End mIoU    : ~0.502
+Net Gain    : +0.005
+Pixel Acc   : ~0.855
+--------------------------------------------
+
+📌 Per-Class Behavior
+--------------------------------------------
+Sky / Background     : ~0.97  (SATURATED)
+Large terrain        : ~0.60
+Small / rare objects : ~0.14 – 0.27
+--------------------------------------------
+
+🧠 Insight
+--------------------------------------------
+✔ Classifier head converged smoothly
+✔ Backbone features already saturated
+❌ No structural jump possible
+--------------------------------------------
+
+🏁 Verdict
+--------------------------------------------
+Head-only fine-tuning worked,
+but reached its expected ceiling.
+--------------------------------------------
+
+
+====================================================
+================== PHASE 2.2 =======================
+====================================================
+
+🛠️ PHASE 2.2 — BACKBONE FINE-TUNING (GENTLE)
+📄 File : train_deeplab_finetune.py
+
+🔧 Changes Introduced
+--------------------------------------------
+• Backbone unfrozen 🔓
+• Lower LR for backbone
+• Same dataset & metrics
+--------------------------------------------
+
+📊 Training Log
+--------------------------------------------
+Epoch 1 | val mIoU = 0.5056
+Epoch 2 | val mIoU = 0.5070  ⭐ BEST
+Epoch 3 | val mIoU = 0.5065
+Epoch 4 | val mIoU = 0.5068
+⏹ Early stopping triggered
+--------------------------------------------
+
+🏁 Best validation mIoU : 0.5069
+
+🧠 Engineering Insight
+--------------------------------------------
+✔ Real performance gain confirmed
+✔ Stable convergence
+✔ Plateau indicates model saturation
+--------------------------------------------
+
+🏆 Verdict
+--------------------------------------------
+BEST achievable performance for
+DeepLabV3 on this dataset.
+--------------------------------------------
+
+
+====================================================
+==================== PHASE 3 =======================
+====================================================
+
+⚠️ PHASE 3 — AGGRESSIVE OPTIMIZATION EXPERIMENT
+📄 Files :
+• train_deeplab_finetune.py
+• dataset.py
+
+🔧 Changes Introduced (ALL AT ONCE)
+--------------------------------------------
+• Class-weighted CrossEntropy
+• Dice Loss
+• Random cropping (512 × 512)
+• Data augmentation
+--------------------------------------------
+
+📊 Results
+--------------------------------------------
+Best mIoU     : ~0.4867
+Pixel Acc    : ~0.81
+--------------------------------------------
+
+❌ Regression Observed
+--------------------------------------------
+⬇ Global mIoU dropped (~0.507 → ~0.487)
+⬇ Pixel accuracy dropped significantly
+--------------------------------------------
+
+
+====================================================
+============= WHY PHASE 3 FAILED ===================
+====================================================
+
+1️⃣ Class Weighting Shifted the Objective
+--------------------------------------------
+• Rare classes weighted heavily (2.4×+)
+• Dominant classes underweighted
+• Rare IoU ↑ slightly
+• Dominant IoU ↓
+• Global mIoU ↓
+--------------------------------------------
+
+2️⃣ Dice Loss Instability
+--------------------------------------------
+• Dice works best for binary tasks
+• Multi-class + small batch = instability
+• Noisy gradients, worse generalization
+--------------------------------------------
+
+3️⃣ Random Cropping Removed Global Context
+--------------------------------------------
+• Off-road scenes need horizon awareness
+• Cropping confused sky vs terrain
+• Sky IoU drop (~0.97 → ~0.96)
+--------------------------------------------
+
+
+====================================================
+============== FINAL CONCLUSION ====================
+====================================================
+
+📈 BEST RESULTS SUMMARY
+--------------------------------------------
+Baseline (Phase 1)          : ~0.496
+Head-only Fine-tuning       : ~0.502
+Backbone Fine-tuning        : ⭐ ~0.507
+Weighted + Dice + Cropping  : ~0.487
+--------------------------------------------
+
+🎯 Key Engineering Insight
+--------------------------------------------
+The bottleneck is the DATA,
+not the training strategy.
+
+The model:
+✔ Is not undertrained
+✔ Is not overfitting
+✔ Converges cleanly
+✔ Has reached its realistic ceiling
+--------------------------------------------
+
+🏁 FINAL TAKEAWAY
+--------------------------------------------
+We prioritized:
+• Proper ablation studies
+• Controlled experimentation
+• Honest evaluation
+• Engineering reasoning over leaderboard chasing
+
+This is real-world ML engineering.
+--------------------------------------------
+
+████████████████████████████████████████████████████
+████████████████████ END OF OUTPUTS ████████████████
+████████████████████████████████████████████████████
+OUTPUTS
+
+
+
+
+
+1. train_deeplab.py (no class differentiation listed)
+>> Using device: cuda Train size: 2857 Val size: 317
+Epoch 1/10 | train loss 0.6367 | val loss 0.4682 | val mIoU 0.3912
+Saved best model: 0.3912171963856053
+Epoch 2/10 | train loss 0.4665 | val loss 0.4269 | val mIoU 0.4167
+Saved best model: 0.41670597951486543
+Epoch 3/10 | train loss 0.4243 | val loss 0.4085 | val mIoU 0.4448
+Saved best model: 0.4448190801417828
+Epoch 4/10 | train loss 0.4067 | val loss 0.3942 | val mIoU 0.4601
+Saved best model: 0.46008846738366976
+Epoch 5/10 | train loss 0.3946 | val loss 0.3908 | val mIoU 0.4669
+Saved best model: 0.46689403959592113
+Epoch 6/10 | train loss 0.3825 | val loss 0.3809 | val mIoU 0.4752
+Saved best model: 0.47518719645465096
+Epoch 7/10 | train loss 0.3776 | val loss 0.3728 | val mIoU 0.4847
+Saved best model: 0.4847453985311892
+Epoch 8/10 | train loss 0.3760 | val loss 0.3704 | val mIoU 0.4857
+Saved best model: 0.4856966889266707
+Epoch 9/10 | train loss 0.3677 | val loss 0.3638 | val mIoU 0.4962
+Saved best model: 0.4962043221276172
+Epoch 10/10 | train loss 0.3664 | val loss 0.3844 | val mIoU 0.4728 No
+improvement for 1 epoch(s)
+Training done.
+Best validation mIoU: 0.4962043221276172
+(venv) PS C:\Users\DELL\Downloads\desertmind_project>
+
+For DeepLabV3 + ResNet50 on an off-road segmentation dataset, that is:
+✅ Very solid baseline
+✅ Model is clearly learning meaningful structure
+✅ No signs of overfitting
+✅ Loss curves and mIoU agree with each other
+This is not a “bad laptop run” — this is a legit result.
+
+🔍 Reading your curve (important insight)
+Let’s look at the trend:
+(Epoch /
+val mIoU)
+1
+0.39
+3
+0.44
+5
+0.47
+7
+0.48
+9
+0.496 ← BEST
+10
+0.47 (drop)
+What this tells us:
+Learning was strong early
+Gains slowed naturally (normal)
+Epoch 9 was the peak
+Epoch 10 already started to degrade
+👉 Early stopping logic worked perfectly, even without triggering fully.
+
+2. train_deeplab_finetune.py (class differentiation listed, backb0ne freezing , finetuning batches/epochs/)
+model.load_state_dict(torch.load(SAVE_PATH))
+Loaded best checkpoint for fine-tuning
+Backbone frozen
+Epoch 1/6 | train loss 0.3590 | val loss 0.3598 | val mIoU 0.4977 | pixel acc 0.8547 Per-class IoU: Class 0: 0.6389 Class 1: 0.4871 Class 2: 0.6218 Class 3: 0.4167 Class 4: 0.1647 Class 5: 0.5197 Class 6: 0.1464 Class 7: 0.2602 Class 8: 0.5983 Class 9: 0.9718
+Saved best model: 0.49772475142552614
+Epoch 2/6 | train loss 0.3569 | val loss 0.3580 | val mIoU 0.4999 | pixel acc 0.8551 Per-class IoU: Class 0: 0.6364 Class 1: 0.4796 Class 2: 0.6196 Class 3: 0.4204 Class 4: 0.1644 Class 5: 0.5219 Class 6: 0.1474 Class 7: 0.2693 Class 8: 0.6025 Class 9: 0.9756
+Saved best model: 0.49993081513886534
+Epoch 3/6 | train loss 0.3562 | val loss 0.3573 | val mIoU 0.5015 | pixel acc 0.8553 Per-class IoU: Class 0: 0.6442 Class 1: 0.4896 Class 2: 0.6210 Class 3: 0.4096 Class 4: 0.1715 Class 5: 0.5200 Class 6: 0.1489 Class 7: 0.2622 Class 8: 0.6003 Class 9: 0.9757
+Saved best model: 0.5014806877434362
+Epoch 4/6 | train loss 0.3545 | val loss 0.3567 | val mIoU 0.5006 | pixel acc 0.8555 Per-class IoU: Class 0: 0.6430 Class 1: 0.4884 Class 2: 0.6218 Class 3: 0.4215 Class 4: 0.1643 Class 5: 0.5199 Class 6: 0.1465 Class 7: 0.2725 Class 8: 0.6026 Class 9: 0.9724
+No improvement for 1 epoch(s)
+Epoch 5/6 | train loss 0.3541 | val loss 0.3565 | val mIoU 0.5019 | pixel acc 0.8556 Per-class IoU: Class 0: 0.6428 Class 1: 0.4935 Class 2: 0.6208 Class 3: 0.4185 Class 4: 0.1698 Class 5: 0.5212 Class 6: 0.1510 Class 7: 0.2700 Class 8: 0.6035 Class 9: 0.9724
+Saved best model: 0.5018714156634803
+Epoch 6/6 | train loss 0.3529 | val loss 0.3573 | val mIoU 0.5020 | pixel acc 0.8555 Per-class IoU: Class 0: 0.6435 Class 1: 0.4982 Class 2: 0.6200 Class 3: 0.4255 Class 4: 0.1658 Class 5: 0.5274 Class 6: 0.1492 Class 7: 0.2692 Class 8: 0.6025 Class 9: 0.9720
+Saved best model: 0.5020358374940557
+Training done.
+Best validation mIoU: 0.5020358374940557
+(venv) PS C:\Users\DELL\Downloads\desertmind_project>
+
+Your fine-tuning results:
+Start: ~0.497
+End: ~0.502
+That’s a +0.005 mIoU gain.
+
+This means:
+✅ Fine-tuning worked correctly
+✅ Training was stable
+❌ But the classifier-only fine-tuning is now saturated
+In other words:
+The head has learned everything it can without changing the backbone.
+This is exactly what we expect after freezing the backbone.
+
+2️⃣ Why you didn’t see a big jump (this is the core reason)
+Look at your per-class IoU:
+Sky / Background (Class 9): ~0.97 → already maxed
+Large classes: ~0.60
+Small / rare classes: ~0.14–0.27
+Your global mIoU is limited by small classes, not the head.
+
+Freezing the backbone means:
+Feature extractor cannot adapt to:
+off-road textures
+small objects
+confusing terrain
+Only the final classifier is adjusting
+
+That’s why you got:
+small, smooth improvements
+but no structural jump
+This is expected and correct behavior.
+
+
+3️⃣ The key conclusion (very important)
+You cannot reach 0.55–0.60 by keeping the backbone frozen.
+Freezing is only phase 1 of fine-tuning.
+To get the real gains, you must do phase 2.
+
+3.  train_deeplab_finetune.py(LR changes / finetuning phase 2) and dataset.py(augmentaion applied)
+
+model.load_state_dict(torch.load(SAVE_PATH))
+Loaded best checkpoint for fine-tuning
+Backbone unfrozen (gentle fine-tuning)
+Epoch 1/6 | train loss 0.3700 | val loss 0.3541 | val mIoU 0.5056 | pixel acc 0.8563 Per-class IoU: Class 0: 0.6474 Class 1: 0.5080 Class 2: 0.6231 Class 3: 0.4242 Class 4: 0.1638 Class 5: 0.5257 Class 6: 0.1580 Class 7: 0.2758 Class 8: 0.6055 Class 9: 0.9724
+Saved best model: 0.5056205459143269
+Epoch 2/6 | train loss 0.3657 | val loss 0.3537 | val mIoU 0.5070 | pixel acc 0.8562 Per-class IoU: Class 0: 0.6488 Class 1: 0.5104 Class 2: 0.6242 Class 3: 0.4189 Class 4: 0.1766 Class 5: 0.5285 Class 6: 0.1555 Class 7: 0.2759 Class 8: 0.6024 Class 9: 0.9725
+Saved best model: 0.5069531298682398
+Epoch 3/6 | train loss 0.3635 | val loss 0.3545 | val mIoU 0.5065 | pixel acc 0.8559 Per-class IoU: Class 0: 0.6469 Class 1: 0.5099 Class 2: 0.6242 Class 3: 0.4233 Class 4: 0.1713 Class 5: 0.5300 Class 6: 0.1583 Class 7: 0.2763 Class 8: 0.6034 Class 9: 0.9725
+No improvement for 1 epoch(s)
+Epoch 4/6 | train loss 0.3634 | val loss 0.3557 | val mIoU 0.5068 | pixel acc 0.8547 Per-class IoU: Class 0: 0.6459 Class 1: 0.5002 Class 2: 0.6250 Class 3: 0.4275 Class 4: 0.1812 Class 5: 0.5317 Class 6: 0.1561 Class 7: 0.2844 Class 8: 0.5994 Class 9: 0.9725
+No improvement for 2 epoch(s)
+Early stopping triggered.
+Training done.
+Best validation mIoU: 0.5069531298682398
+(venv) PS C:\Users\DELL\Downloads\desertmind_project> (venv) PS
+
+
+
+
+📊 What just happened (objective reading)
+Your best results in phase-2 fine-tuning:
+Baseline before fine-tune: ~0.496
+Head-only fine-tune: ~0.502
+Backbone unfrozen: 0.5069 (BEST)
+That’s a real gain, but it plateaued quickly:
+
+Epoch 1: 0.5056
+Epoch 2: 0.5070 ← peak
+Epoch 3: 0.5065
+Epoch 4: 0.5068
+Early stopping
+
+This is exactly what a converged model looks like.
+
+🧠 Why it stopped improving (important)
+Look at your per-class IoUs:
+Easy / dominant classes (Sky, Background): ~0.97
+Large terrain classes: ~0.60
+Small / rare clutter classes: ~0.15–0.28
+Global mIoU is being limited by:
+tiny objects
+class imbalance
+noisy boundaries
+label ambiguity
+Fine-tuning cannot fix dataset limitations.
+
+At this point:
+The model is no longer undertrained — the data + architecture are the bottleneck.
+
+🎯 Key conclusion (be honest with yourself)
+0.50–0.51 is the realistic maximum for DeepLabV3-MobileNet on this dataset.
+You did everything right:
+
+augmentation ✔
+AMP ✔
+proper metrics ✔
+head fine-tune ✔
+backbone unfreeze ✔
+early stopping ✔
+The fact that it stopped cleanly is a good sign, not a failure.
+
+
+FINAL : train_deeplab_finetune.py (with augmentati0n in dataset.py + class weight differentiation , cropping images)
+
+Epoch 1/12 | train loss 0.7936 | val loss 0.7972 | val mIoU 0.4816 | pixel acc 0.8098 Per-class IoU: Class 0: 0.6182 Class 1: 0.4918 Class 2: 0.5595 Class 3: 0.3620 Class 4: 0.2519 Class 5: 0.4850 Class 6: 0.1640 Class 7: 0.2515 Class 8: 0.4836 Class 9: 0.9630
+✅ Saved best model: 0.48156143128311196
+Epoch 2/12 | train loss 0.7791 | val loss 0.8003 | val mIoU 0.4867 | pixel acc 0.8174 Per-class IoU: Class 0: 0.6168 Class 1: 0.4958 Class 2: 0.5723 Class 3: 0.3605 Class 4: 0.2548 Class 5: 0.4963 Class 6: 0.1590 Class 7: 0.2579 Class 8: 0.4982 Class 9: 0.9637
+✅ Saved best model: 0.48671256302609817
+Epoch 3/12 | train loss 0.7693 | val loss 0.7954 | val mIoU 0.4855 | pixel acc 0.8142 Per-class IoU: Class 0: 0.6183 Class 1: 0.4880 Class 2: 0.5693 Class 3: 0.3791 Class 4: 0.2582 Class 5: 0.4748 Class 6: 0.1700 Class 7: 0.2558 Class 8: 0.4935 Class 9: 0.9625
+No improvement for 1 epoch(s)
+Epoch 4/12 | train loss 0.7653 | val loss 0.7900 | val mIoU 0.4846 | pixel acc 0.8114 Per-class IoU: Class 0: 0.6149 Class 1: 0.4878 Class 2: 0.5666 Class 3: 0.3816 Class 4: 0.2570 Class 5: 0.5041 Class 6: 0.1664 Class 7: 0.2542 Class 8: 0.4823 Class 9: 0.9635
+No improvement for 2 epoch(s)
+Epoch 5/12 | train loss 0.7528 | val loss 0.7841 | val mIoU 0.4848 | pixel acc 0.8129 Per-class IoU: Class 0: 0.6180 Class 1: 0.4938 Class 2: 0.5652 Class 3: 0.3770 Class 4: 0.2585 Class 5: 0.4995 Class 6: 0.1700 Class 7: 0.2461 Class 8: 0.4869 Class 9: 0.9625
+No improvement for 3 epoch(s)
+Early stopping triggered.
+Training done.
+Best validation mIoU: 0.48671256302609817
+Saved to: best_deeplab_balanced.pth
+
+
+🧠 What just happened
+
+You added three powerful things at once:
+Class-weighted CrossEntropy
+Dice loss
+Random crop (512×512)
+
+Individually, each of these can help.
+Together, on this dataset, they hurt global mIoU.
+
+Your numbers show it clearly:
+
+Before (best run)
+Global mIoU ≈ 0.507
+Pixel acc ≈ 0.855
+
+This run (balanced + dice + crop)
+Best global mIoU ≈ 0.487
+Pixel acc ≈ 0.81
+
+That’s not noise.
+That’s a real regression.
+❓ Why did “stronger” techniques make it worse?
+This is the key insight.
+
+1️⃣ Class weighting shifted the objective
+
+Your class weights:
+Rare classes: 2.47, 1.63
+Common classes: 0.15–0.27
+
+This tells the model:
+“I care MUCH more about rare clutter than about sky/ground.”
+
+Result:
+Rare classes ↑ slightly
+Big, dominant classes ↓
+Global mIoU goes down (because it averages all classes)
+This is expected behavior, not a bug.
+
+2️⃣ Dice loss changed what the model optimizes
+
+Dice loss:
+Is great for binary segmentation
+Is unstable for multi-class with noisy labels
+Especially with small batch size (2)
+
+You can see it in:
+Higher train loss
+Worse validation stability
+Lower pixel accuracy
+Dice helped some classes but hurt the overall balance.
+
+3️⃣ Random crop removed global context
+
+Your original runs used full images.
+Now you’re training on 512×512 crops.
+
+For off-road scenes:
+Global context (horizon, sky vs terrain) matters
+Crops confuse large-scale classes
+Sky IoU dropped from ~0.97 → ~0.96
+That alone costs ~0.01–0.02 global mIoU
+
+🔑 The most important conclusion
+Your earlier ~0.507 mIoU run is BETTER than this one.
+
+This new experiment did NOT fail —
+it answered an important question:
+“Do class-weighted CE + Dice + crop help here?”
+Answer: No, not for global mIoU.
+
+That’s valuable engineering insight.

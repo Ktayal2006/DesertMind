@@ -621,7 +621,7 @@ in the Software without restriction...
 
 ---
 
-## 👨‍💻 Authors
+<!-- This is a hidden comment in README ## 👨‍💻 Authors
 
 <table>
   <tr>
@@ -655,6 +655,7 @@ in the Software without restriction...
     </td>
   </tr>
 </table>
+ -->
 
 ### Acknowledgments
 

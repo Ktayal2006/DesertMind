@@ -60,6 +60,12 @@ class OffroadSegDataset(Dataset):
 
         # --- 🔥 NEW: SKY CROP ---
         img, raw_mask = self.crop_top(img, raw_mask)
+        # ✅ ADD THIS (CRITICAL)
+        img = Image.fromarray(img).resize((520, 520))
+        raw_mask = Image.fromarray(raw_mask).resize((520, 520), Image.NEAREST)
+        
+        img = np.array(img)
+        raw_mask = np.array(raw_mask)
 
         # --- Augmentations (same as Phase 2) ---
         if self.split == "train":
